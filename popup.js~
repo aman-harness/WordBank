@@ -1,0 +1,42 @@
+/* The URL for the Google search */
+var google = 'http://google.com/#q=';
+
+/* The function that finds and returns the selected text */
+var funcToInject = function() {
+    var range = window.getSelection().getRangeAt(0);
+    var selectedText = range.cloneContents().textContent;
+    return selectedText;
+};
+/* This line converts the above function to string
+ * (and makes sure it will be called instantly) */
+var jsCodeStr = ';(' + funcToInject + ')();';
+
+window.addEventListener('DOMContentLoaded', function() {
+
+    /* Find our input elements from `popup.html` */
+    var inp = document.querySelector('input[type="text"]#inp');
+    var btn = document.querySelector('input[type="button"]#btn');
+
+    /* Open a new tab with the search results */
+    btn.addEventListener('click', function() {
+        var query = encodeURIComponent(inp.value);
+        chrome.tabs.create({ url: google + query });
+    });
+
+    /* Inject the code into all frames of the active tab */
+    chrome.tabs.executeScript({
+        code: jsCodeStr,
+        allFrames: true
+    }, function(selectedTextPerFrame) {
+
+        if (chrome.runtime.lastError) {
+            /* Report any error */
+            alert('ERROR:\n' + chrome.runtime.lastError.message);
+        } else if ((selectedTextPerFrame.length > 0)
+                && (typeof(selectedTextPerFrame[0]) === 'string')) {
+            /* The results are as expected, 
+             * populate the "search-query" input field */
+            inp.value = selectedTextPerFrame[0].trim();
+        }
+    });
+});
